@@ -1,0 +1,8 @@
+.env
+backups/
+*.tar.gz
+*.zip
+__pycache__/
+.pytest_cache/
+.venv/
+asset-manifest.local.json

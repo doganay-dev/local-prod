@@ -1,0 +1,19 @@
+{
+  "prompt": "Keep the metal product geometry unchanged and place it in a neutral daylight interior.",
+  "negative_prompt": "visible mounting hardware, warm orange wall, generic white vase",
+  "image_urls": [
+    "data:image/png;base64,REPLACE_WITH_BASE64"
+  ],
+  "image_size": {
+    "width": 1024,
+    "height": 1024
+  },
+  "output_format": "png",
+  "sync_mode": false,
+  "num_images": 1,
+  "enable_prompt_expansion": false,
+  "guidance_scale": 5,
+  "num_inference_steps": 28,
+  "seed": 40040040
+}
+

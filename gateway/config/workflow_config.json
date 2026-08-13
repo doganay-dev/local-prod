@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "workflow_id": "official-flux2-klein-9b-base-edit-v1",
+  "source": "https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_flux2_klein_image_edit_9b_base.json",
+  "minimum_comfy_version": "0.28.0",
+  "models": {
+    "unet_name": "flux-2-klein-base-9b-fp8.safetensors",
+    "unet_weight_dtype": "default",
+    "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+    "clip_type": "flux2",
+    "clip_device": "default",
+    "vae_name": "full_encoder_small_decoder.safetensors"
+  },
+  "sampler_name": "euler",
+  "reference_preprocessing": {
+    "method": "ImageScaleToTotalPixels",
+    "upscale_method": "lanczos",
+    "megapixels": 1.0,
+    "resolution_steps": 1
+  },
+  "save_node_id": "13",
+  "required_node_types": [
+    "UNETLoader",
+    "CLIPLoader",
+    "VAELoader",
+    "CLIPTextEncode",
+    "RandomNoise",
+    "KSamplerSelect",
+    "Flux2Scheduler",
+    "EmptyFlux2LatentImage",
+    "CFGGuider",
+    "SamplerCustomAdvanced",
+    "VAEDecode",
+    "SaveImage",
+    "LoadImage",
+    "ImageScaleToTotalPixels",
+    "VAEEncode",
+    "ReferenceLatent"
+  ]
+}
+

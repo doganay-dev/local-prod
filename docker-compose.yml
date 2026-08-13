@@ -1,0 +1,131 @@
+name: mockup-local-prod
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.34.5
+    restart: unless-stopped
+    mem_limit: 1536m
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      TZ: Europe/Istanbul
+      GENERIC_TIMEZONE: Europe/Istanbul
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_EDITOR_BASE_URL: http://localhost:5678/
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Set N8N_ENCRYPTION_KEY in .env}
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: "1"
+      N8N_DEFAULT_BINARY_DATA_MODE: filesystem
+      N8N_AVAILABLE_BINARY_DATA_MODES: filesystem
+      N8N_BINARY_DATA_STORAGE_PATH: /home/node/.n8n/binaryData
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_RUNNERS_ENABLED: "true"
+      # Required because Map_Categories reads the eight DRIVE_* folder IDs via $env.
+      # Import only trusted workflows into this private local instance.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      NODE_OPTIONS: --max-old-space-size=1024
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: "1000"
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "true"
+      GATEWAY_BASE_URL: http://gateway:8787
+      PDF_RASTER_BASE_URL: http://pdf-raster:8080
+      DRIVE_METAL_UNPRINTED_INPUT_ID: ${DRIVE_METAL_UNPRINTED_INPUT_ID:-}
+      DRIVE_METAL_PRINTED_INPUT_ID: ${DRIVE_METAL_PRINTED_INPUT_ID:-}
+      DRIVE_METAL_REVISION_UNPRINTED_INPUT_ID: ${DRIVE_METAL_REVISION_UNPRINTED_INPUT_ID:-}
+      DRIVE_METAL_REVISION_PRINTED_INPUT_ID: ${DRIVE_METAL_REVISION_PRINTED_INPUT_ID:-}
+      DRIVE_METAL_OUTPUT_ID: ${DRIVE_METAL_OUTPUT_ID:-}
+      DRIVE_METAL_DONE_ID: ${DRIVE_METAL_DONE_ID:-}
+      DRIVE_METAL_REVISION_OUTPUT_ID: ${DRIVE_METAL_REVISION_OUTPUT_ID:-}
+      DRIVE_METAL_REVISION_DONE_ID: ${DRIVE_METAL_REVISION_DONE_ID:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      gateway:
+        condition: service_healthy
+      pdf-raster:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    networks:
+      - local-ai
+
+  gateway:
+    build:
+      context: ./gateway
+    restart: unless-stopped
+    mem_limit: 1536m
+    environment:
+      TZ: Europe/Istanbul
+      COMFY_URL: ${COMFY_URL:-http://host.docker.internal:8188}
+      STATE_DIR: /data
+      SPOOL_DIR: /data/spool
+      WORKFLOW_CONFIG_PATH: /app/config/workflow_config.json
+      PUBLIC_BASE_URL: http://gateway:8787
+      COMFY_POLL_SECONDS: "1"
+      COMFY_TIMEOUT_SECONDS: "7200"
+      INPUT_MAX_BYTES: "33554432"
+      SPOOL_RETENTION_DAYS: "7"
+      GATEWAY_ADMIN_TOKEN: ${GATEWAY_ADMIN_TOKEN:?Set GATEWAY_ADMIN_TOKEN in .env}
+    volumes:
+      - gateway_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/healthz', timeout=4)\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - local-ai
+
+  pdf-raster:
+    build:
+      context: ./pdf-raster
+      target: runtime
+    restart: unless-stopped
+    mem_limit: 768m
+    environment:
+      TZ: Europe/Istanbul
+      DEFAULT_WIDTH: "1600"
+      DEFAULT_FILL: "0.86"
+      MAX_PDF_BYTES: "26214400"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=4)\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - local-ai
+
+volumes:
+  n8n_data:
+    name: mockup_local_prod_n8n_data
+  gateway_data:
+    name: mockup_local_prod_gateway_data
+
+networks:
+  local-ai:
+    name: mockup_local_prod_internal
+    driver: bridge
